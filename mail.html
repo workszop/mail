@@ -14,8 +14,8 @@ body{font-family:'DM Sans',sans-serif;background:#f0f2f5;color:#1a1a2e;}
 
 /* LAYOUT */
 #app{display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden;}
-.topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e0e3e8;padding:0 20px;height:56px;flex-shrink:0;box-shadow:0 1px 3px #0000000a;}
-.topbar h1{font-size:17px;font-weight:700;letter-spacing:-.3px;background:linear-gradient(135deg,#e04590,#5b6abf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.topbar{display:flex;align-items:center;justify-content:space-between;position:relative;background:#fff;border-bottom:1px solid #e0e3e8;padding:0 20px;height:56px;flex-shrink:0;box-shadow:0 1px 3px #0000000a;}
+.topbar h1{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#000;position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;}
 .topbar-tabs{display:flex;gap:2px;background:#f0f2f5;border-radius:10px;padding:3px;}
 .topbar-tab{padding:7px 18px;border-radius:8px;border:none;font-family:inherit;font-size:13px;font-weight:500;color:#8890a0;background:transparent;cursor:pointer;transition:all .15s;}
 .topbar-tab.active{background:#fff;color:#1a1a2e;box-shadow:0 1px 3px #0000000d;}
@@ -70,6 +70,10 @@ body{font-family:'DM Sans',sans-serif;background:#f0f2f5;color:#1a1a2e;}
 .field .color-row{display:flex;gap:6px;align-items:center;}
 .field .color-row input[type=color]{width:36px;height:30px;border:none;padding:0;cursor:pointer;}
 .field .color-row input[type=text]{flex:1;}
+.field .img-row{display:flex;gap:6px;align-items:center;}
+.field .img-row input[type=text]{flex:1;min-width:0;}
+.field .img-row .upload-btn{flex-shrink:0;padding:7px 10px;background:#f0f2f5;border:1px solid #dde0e6;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;color:#555;cursor:pointer;white-space:nowrap;}
+.field .img-row .upload-btn:hover{background:#e4e7ed;color:#222;}
 .settings-section{padding:12px 16px;border-bottom:1px solid #eef0f3;}
 .settings-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8890a0;margin-bottom:12px;}
 
@@ -572,6 +576,27 @@ function renderEditor() {
       input.addEventListener('input', handler);
       if(input.tagName==='SELECT') input.addEventListener('change', handler);
     });
+
+    // Bind image upload buttons
+    panel.querySelectorAll('[data-upload-field]').forEach(btn => {
+      const key = btn.dataset.uploadField;
+      const fileInput = panel.querySelector(`[data-upload-input="${key}"]`);
+      btn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          sections[activeIdx][key] = e.target.result;
+          renderEditor();
+          renderCanvas();
+          renderLayers();
+          if(currentTab==='preview') renderPreview();
+          if(currentTab==='code') renderCode();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
   } else {
     // Settings view
     panel.innerHTML = `
@@ -631,6 +656,10 @@ function fieldHTML(s, key, label, type, opts={}) {
   if(type==='color'){
     const cv = val || opts.def || '#333333';
     return `<label class="field"><span>${label}</span><div class="color-row"><input type="color" data-field="${key}" value="${cv}" /><input type="text" data-field="${key}" value="${cv}" /></div></label>`;
+  }
+  if(key==='imageUrl'){
+    const preview = val && val.startsWith('data:') ? ' (uploaded)' : '';
+    return `<label class="field"><span>${label}${preview}</span><div class="img-row"><input type="text" data-field="${key}" value="${val.startsWith('data:')?'':val}" placeholder="https://..." /><button type="button" class="upload-btn" data-upload-field="${key}">Upload</button><input type="file" accept="image/*" data-upload-input="${key}" style="display:none;" /></div></label>`;
   }
   const step = opts.step || (key==='lineHeight'?0.1:1);
   const extra = type==='number' ? ` min="${opts.min||''}" max="${opts.max||''}" step="${step}"` : '';

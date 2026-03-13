@@ -137,8 +137,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0f2f5;color:#1a1a2e;}
       <button class="topbar-tab" data-tab="code"><span class="lc" data-lucide="code-xml"></span> HTML Code</button>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost" id="btnCopyCode"><span class="lc" data-lucide="code-xml"></span> Copy Code</button>
-      <button class="btn btn-download" id="btnCopyOutlook"><span class="lc" data-lucide="clipboard-copy"></span> Copy for Outlook / Gmail</button>
+<button class="btn btn-download" id="btnCopyOutlook"><span class="lc" data-lucide="clipboard-copy"></span> Copy for Outlook / Gmail</button>
     </div>
   </div>
 
@@ -728,16 +727,6 @@ function switchTab(tab) {
   // Tab buttons
   document.querySelectorAll('.topbar-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
-  // Copy raw HTML code
-  document.getElementById('btnCopyCode').addEventListener('click', () => {
-    navigator.clipboard.writeText(genHTML(sections, settings)).then(() => {
-      const btn = document.getElementById('btnCopyCode');
-      const orig = btn.innerHTML;
-      btn.innerHTML = `${L('check')} Copied!`;
-      if(window.lucide) lucide.createIcons();
-      setTimeout(() => { btn.innerHTML = orig; if(window.lucide) lucide.createIcons(); }, 2000);
-    });
-  });
 
   // Copy as rich HTML for Outlook/Gmail paste
   document.getElementById('btnCopyOutlook').addEventListener('click', () => {

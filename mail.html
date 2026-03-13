@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Outlook Email Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:#f0f2f5;color:#1a1a2e;}
+
+/* LAYOUT */
+#app{display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden;}
+.topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e0e3e8;padding:0 20px;height:56px;flex-shrink:0;box-shadow:0 1px 3px #0000000a;}
+.topbar h1{font-size:17px;font-weight:700;letter-spacing:-.3px;background:linear-gradient(135deg,#e04590,#5b6abf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.topbar-tabs{display:flex;gap:2px;background:#f0f2f5;border-radius:10px;padding:3px;}
+.topbar-tab{padding:7px 18px;border-radius:8px;border:none;font-family:inherit;font-size:13px;font-weight:500;color:#8890a0;background:transparent;cursor:pointer;transition:all .15s;}
+.topbar-tab.active{background:#fff;color:#1a1a2e;box-shadow:0 1px 3px #0000000d;}
+.topbar-actions{display:flex;gap:8px;}
+.btn{padding:8px 16px;border-radius:8px;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px;}
+.btn-primary{background:linear-gradient(135deg,#e04590,#5b6abf);color:#fff;}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);}
+.btn-download{background:#1a1a2e;color:#fff;}
+.btn-download:hover{background:#2a2a40;transform:translateY(-1px);}
+.btn-ghost{background:#fff;color:#555;border:1px solid #dde0e6;}
+.btn-ghost:hover{background:#f6f7f9;color:#222;}
+.main{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:270px;flex-shrink:0;background:#fff;border-right:1px solid #e0e3e8;display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-header{padding:14px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:#8890a0;border-bottom:1px solid #eef0f3;}
+.add-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;padding:10px;}
+.add-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:9px 4px;border-radius:8px;background:#f6f7f9;border:1px solid #e8eaee;color:#555;cursor:pointer;transition:all .15s;font-family:inherit;font-size:10px;font-weight:500;}
+.add-btn:hover{background:#eef0f5;border-color:#c8cad0;color:#222;transform:translateY(-1px);}
+.add-btn .add-icon{font-size:15px;line-height:1;}
+
+/* LAYERS */
+.section-list{flex:1;overflow-y:auto;padding:6px;}
+.section-list::-webkit-scrollbar{width:5px;}
+.section-list::-webkit-scrollbar-thumb{background:#ccc;border-radius:5px;}
+.layer-item{display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:3px;border-radius:8px;cursor:grab;border:2px solid transparent;transition:all .12s;font-size:13px;color:#555;user-select:none;}
+.layer-item:hover{background:#f6f7f9;}
+.layer-item.active{background:#eef0ff;border-color:#5b6abf33;color:#1a1a2e;}
+.layer-item.drag-over{border-color:#e04590;background:#fef0f5;}
+.layer-item.dragging{opacity:.35;}
+.layer-item .grip{color:#bbb;cursor:grab;flex-shrink:0;width:16px;display:flex;align-items:center;justify-content:center;}
+.layer-item .grip .lc svg{width:12px;height:12px;}
+.layer-item .s-icon{width:22px;text-align:center;font-size:13px;flex-shrink:0;}
+.layer-item .s-label{flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.layer-item .s-actions{display:flex;gap:1px;opacity:0;transition:opacity .15s;flex-shrink:0;}
+.layer-item:hover .s-actions,.layer-item.active .s-actions{opacity:1;}
+.s-action{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;border:none;background:transparent;color:#999;cursor:pointer;font-size:13px;font-family:inherit;transition:all .1s;}
+.s-action:hover{background:#eef0f5;color:#333;}
+.s-action.danger:hover{background:#fef0f5;color:#e04590;}
+.empty-msg{text-align:center;padding:36px 16px;color:#999;font-size:13px;line-height:1.7;}
+
+/* EDITOR PANEL */
+.editor-panel{width:300px;flex-shrink:0;background:#fff;border-left:1px solid #e0e3e8;overflow-y:auto;display:flex;flex-direction:column;}
+.editor-panel::-webkit-scrollbar{width:5px;}
+.editor-panel::-webkit-scrollbar-thumb{background:#ccc;border-radius:5px;}
+.editor-panel-header{padding:14px 16px;font-size:14px;font-weight:700;border-bottom:1px solid #eef0f3;color:#1a1a2e;display:flex;justify-content:space-between;align-items:center;}
+.editor-body{padding:12px 16px;}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:13px;font-size:10px;color:#8890a0;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.field input,.field textarea,.field select{background:#f6f7f9;border:1px solid #dde0e6;border-radius:6px;padding:8px 10px;color:#1a1a2e;font-family:inherit;font-size:13px;outline:none;transition:border .15s;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#5b6abf;background:#fff;}
+.field textarea{resize:vertical;min-height:60px;}
+.field .color-row{display:flex;gap:6px;align-items:center;}
+.field .color-row input[type=color]{width:36px;height:30px;border:none;padding:0;cursor:pointer;}
+.field .color-row input[type=text]{flex:1;}
+.settings-section{padding:12px 16px;border-bottom:1px solid #eef0f3;}
+.settings-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8890a0;margin-bottom:12px;}
+
+/* CENTER */
+.center{flex:1;overflow:auto;background:#e8ecf0;display:flex;flex-direction:column;align-items:center;}
+.center::-webkit-scrollbar{width:7px;}
+.center::-webkit-scrollbar-thumb{background:#ccc;border-radius:5px;}
+.preview-frame{width:100%;max-width:660px;flex:1;border:none;background:#fff;margin:20px 0;border-radius:8px;box-shadow:0 2px 20px #0000000d;}
+.code-wrap{width:100%;max-width:900px;padding:20px;}
+.code-block{background:#fff;border:1px solid #dde0e6;border-radius:10px;padding:20px;overflow:auto;max-height:calc(100vh - 140px);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;color:#3a4560;white-space:pre-wrap;word-break:break-all;}
+
+/* BUILD */
+.build-preview{padding:24px;width:100%;display:flex;justify-content:center;flex:1;}
+.build-canvas{width:100%;max-width:660px;background:#fff;border-radius:8px;box-shadow:0 2px 20px #0000000d;overflow:visible;align-self:flex-start;position:relative;padding-left:36px;}
+.canvas-block{position:relative;border:2px solid transparent;transition:border .12s,opacity .15s;cursor:pointer;}
+.canvas-block:hover{border-color:#5b6abf22;}
+.canvas-block.active-block{border-color:#5b6abf;}
+.canvas-block.canvas-drag-over{border-top:3px solid #e04590;}
+.canvas-block.canvas-dragging{opacity:.3;}
+
+.canvas-toolbar{position:absolute;top:4px;right:4px;display:flex;gap:3px;opacity:0;transition:opacity .15s;z-index:10;background:#ffffffee;border-radius:7px;padding:3px 4px;backdrop-filter:blur(6px);box-shadow:0 2px 12px #00000010;border:1px solid #e8eaee;}
+.canvas-block:hover .canvas-toolbar,.canvas-block.active-block .canvas-toolbar{opacity:1;}
+.ct-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:5px;border:none;background:transparent;color:#888;cursor:pointer;font-size:14px;font-family:inherit;transition:all .1s;}
+.ct-btn:hover{background:#eef0f5;color:#222;}
+.ct-btn.danger:hover{background:#fef0f5;color:#e04590;}
+
+.canvas-grip{position:absolute;top:50%;left:-32px;transform:translateY(-50%);width:24px;height:40px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #dde0e6;border-radius:6px;color:#bbb;cursor:grab;opacity:0;transition:opacity .15s;z-index:10;box-shadow:0 1px 4px #0000000a;}
+.canvas-grip .lc svg{width:14px;height:14px;}
+.canvas-block:hover .canvas-grip,.canvas-block.active-block .canvas-grip{opacity:1;}
+.canvas-grip:active{cursor:grabbing;background:#f6f7f9;color:#666;}
+
+.canvas-badge{position:absolute;top:4px;left:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;background:#ffffffee;color:#8890a0;padding:3px 8px;border-radius:5px;opacity:0;transition:opacity .15s;z-index:10;pointer-events:none;backdrop-filter:blur(6px);border:1px solid #e8eaee;}
+.canvas-block:hover .canvas-badge,.canvas-block.active-block .canvas-badge{opacity:1;}
+
+.hidden{display:none!important;}
+.how-to p{margin-bottom:6px;color:#888;font-size:12px;line-height:1.7;}
+.how-to b{color:#666;}
+
+/* Lucide icon helpers */
+.lc{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;flex-shrink:0;}
+.lc svg{width:1em;height:1em;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;}
+.add-btn .lc svg{width:18px;height:18px;}
+.s-action .lc svg,.ct-btn .lc svg{width:14px;height:14px;}
+.layer-item .s-icon .lc svg{width:14px;height:14px;}
+.canvas-badge .lc svg{width:10px;height:10px;}
+.topbar h1 .lc svg{width:18px;height:18px;}
+.btn .lc svg{width:14px;height:14px;margin-right:4px;}
+.topbar-tab .lc svg{width:14px;height:14px;margin-right:3px;}
+.topbar-tab{display:inline-flex;align-items:center;gap:2px;}
+.editor-panel-header .lc svg{width:15px;height:15px;margin-right:2px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <h1><span class="lc" data-lucide="mail"></span> Outlook Email Builder</h1>
+    <div class="topbar-tabs">
+      <button class="topbar-tab active" data-tab="build"><span class="lc" data-lucide="layout-template"></span> Build</button>
+      <button class="topbar-tab" data-tab="preview"><span class="lc" data-lucide="eye"></span> Preview</button>
+      <button class="topbar-tab" data-tab="code"><span class="lc" data-lucide="code-xml"></span> HTML Code</button>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="btnCopyCode"><span class="lc" data-lucide="code-xml"></span> Copy Code</button>
+      <button class="btn btn-download" id="btnCopyOutlook"><span class="lc" data-lucide="clipboard-copy"></span> Copy for Outlook / Gmail</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header">Add Blocks</div>
+      <div class="add-grid" id="addGrid"></div>
+      <div class="sidebar-header">Layers — drag to reorder</div>
+      <div class="section-list" id="layerList"></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center" id="centerPanel">
+      <div class="build-preview" id="viewBuild">
+        <div id="emptyState" style="text-align:center;color:#999;padding-top:100px;font-size:15px;line-height:2;">
+          <div style="margin-bottom:16px;"><span class="lc" style="color:#ccc;"><svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span></div>
+          Add blocks from the left panel to start building.<br/>
+          Drag the grip handle to reorder. Click to edit.
+        </div>
+        <div class="build-canvas hidden" id="buildCanvas"></div>
+      </div>
+      <iframe class="preview-frame hidden" id="viewPreview" title="Email Preview"></iframe>
+      <div class="code-wrap hidden" id="viewCode"><div class="code-block" id="codeBlock"></div></div>
+    </div>
+
+    <!-- EDITOR PANEL -->
+    <div class="editor-panel" id="editorPanel"></div>
+  </div>
+</div>
+
+<script>
+/* ===== STATE ===== */
+let sections = [];
+let settings = { bgColor:'#f4f4f4', contentBgColor:'#ffffff', emailWidth:600, fontFamily:'Arial, Helvetica, sans-serif', preheaderText:'' };
+let activeIdx = null;
+let currentTab = 'build';
+let _id = 0;
+const uid = () => 's_'+(Date.now())+'_'+(++_id);
+
+const FONTS = [
+  'Arial, Helvetica, sans-serif','Georgia, serif','Times New Roman, Times, serif',
+  'Verdana, Geneva, sans-serif','Tahoma, Geneva, sans-serif','Trebuchet MS, sans-serif',
+  'Courier New, Courier, monospace'
+];
+
+const TYPES = [
+  {type:'header-image',icon:'image',label:'Header Image'},
+  {type:'heading',icon:'heading',label:'Heading'},
+  {type:'text',icon:'align-left',label:'Text Block'},
+  {type:'image-text',icon:'panel-left',label:'Image + Text'},
+  {type:'text-image',icon:'panel-right',label:'Text + Image'},
+  {type:'button',icon:'mouse-pointer-click',label:'Button (CTA)'},
+  {type:'image',icon:'image',label:'Image'},
+  {type:'divider',icon:'minus',label:'Divider'},
+  {type:'spacer',icon:'unfold-vertical',label:'Spacer'},
+  {type:'signature',icon:'pen-line',label:'Signature'},
+  {type:'footer',icon:'footprints',label:'Footer'},
+];
+
+const DEFAULTS = {
+  'header-image':{imageUrl:'',altText:'',imageWidth:600,padding:0},
+  heading:{content:'Your Heading Here',fontSize:28,textColor:'#1a1a2e',textAlign:'center',padding:20},
+  text:{content:'Your paragraph text goes here. Use <b>bold</b>, <i>italic</i>, <a href="#">links</a> and <br/> line breaks.',fontSize:16,lineHeight:1.6,textColor:'#333333',textAlign:'left',padding:20},
+  'image-text':{imageUrl:'',altText:'',imageWidth:200,content:'Write your text here alongside the image. Supports <b>HTML</b> formatting.',fontSize:15,lineHeight:1.5,textColor:'#333333',textVerticalAlign:'top',padding:20,imageGap:20},
+  'text-image':{imageUrl:'',altText:'',imageWidth:200,content:'Write your text here alongside the image. Supports <b>HTML</b> formatting.',fontSize:15,lineHeight:1.5,textColor:'#333333',textVerticalAlign:'top',padding:20,imageGap:20},
+  button:{content:'Click Here',buttonUrl:'#',bgColor:'#e94560',textColor:'#ffffff',fontSize:16,buttonPaddingV:14,buttonPaddingH:40,borderRadius:8,buttonWidth:220,buttonHeight:48,textAlign:'center',padding:20},
+  image:{imageUrl:'',altText:'',imageWidth:400,borderRadius:0,padding:10},
+  divider:{borderWidth:1,borderColor:'#e0e0e0',borderStyle:'solid',padding:10},
+  spacer:{height:20},
+  signature:{sigName:'John Doe',sigTitle:'Marketing Manager',sigCompany:'Acme Inc.',sigEmail:'john@acme.com',sigPhone:'+1 (555) 123-4567',sigWebsite:'',imageUrl:'',altText:'',imageWidth:80,imageRounded:true,nameColor:'#1a1a2e',nameSize:14,detailColor:'#666666',detailSize:12,linkColor:'#5b6abf',dividerColor:'#e0e0e0',padding:20,imageGap:16},
+  footer:{content:'\u00a9 2026 Company Name. All rights reserved.',fontSize:12,textColor:'#999999',unsubscribeUrl:'',linkColor:'#999999',padding:20},
+};
+
+const PH_WIDE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='200' viewBox='0 0 600 200'%3E%3Crect fill='%23e8ecf0' width='600' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23a0aab4' font-family='sans-serif' font-size='16'%3EHeader image%3C/text%3E%3C/svg%3E";
+const PH_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect fill='%23e8ecf0' width='400' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23a0aab4' font-family='sans-serif' font-size='16'%3EImage placeholder%3C/text%3E%3C/svg%3E";
+const PH_SQ = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect fill='%23e8ecf0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23a0aab4' font-family='sans-serif' font-size='13'%3EImage%3C/text%3E%3C/svg%3E";
+
+function getMeta(s){ return TYPES.find(t=>t.type===s.type)||{icon:'help-circle',label:s.type}; }
+
+/* Lucide inline icon helper — returns <span> with data-lucide for later createIcons() call */
+function L(name){ return `<span class="lc" data-lucide="${name}"></span>`; }
+
+/* ===== OUTLOOK HTML GENERATOR ===== */
+function genHTML(sects, sett) {
+  const {bgColor,contentBgColor,emailWidth,fontFamily,preheaderText} = sett;
+  const rows = sects.map(s => {
+    const p = s.padding||0;
+    if(s.type==='header-image') return `<tr><td align="center" style="padding:${p}px;">${s.imageUrl?`<img src="${s.imageUrl}" width="${s.imageWidth||emailWidth}" alt="${s.altText||''}" style="display:block;max-width:100%;height:auto;border:0;" />`:'<!-- Add header image URL -->'}</td></tr>`;
+    if(s.type==='text') return `<tr><td style="padding:${s.padding||20}px;font-family:${fontFamily};font-size:${s.fontSize||16}px;line-height:${s.lineHeight||1.6};color:${s.textColor||'#333'};text-align:${s.textAlign||'left'};">${s.content||''}</td></tr>`;
+    if(s.type==='heading') return `<tr><td style="padding:${s.padding||20}px;font-family:${fontFamily};font-size:${s.fontSize||28}px;font-weight:bold;line-height:1.2;color:${s.textColor||'#1a1a2e'};text-align:${s.textAlign||'center'};">${s.content||''}</td></tr>`;
+    if(s.type==='button') return `<tr><td align="${s.textAlign||'center'}" style="padding:${s.padding||20}px;"><!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${s.buttonUrl||'#'}" style="height:${s.buttonHeight||48}px;v-text-anchor:middle;width:${s.buttonWidth||220}px;" arcsize="${s.borderRadius||8}%" fill="t"><v:fill type="tile" color="${s.bgColor||'#e94560'}" /><w:anchorlock/><center style="color:${s.textColor||'#fff'};font-family:${fontFamily};font-size:${s.fontSize||16}px;font-weight:bold;">${s.content||'Click Here'}</center></v:roundrect><![endif]--><!--[if !mso]><!--><a href="${s.buttonUrl||'#'}" target="_blank" style="display:inline-block;background-color:${s.bgColor||'#e94560'};color:${s.textColor||'#fff'};font-family:${fontFamily};font-size:${s.fontSize||16}px;font-weight:bold;text-decoration:none;padding:${s.buttonPaddingV||14}px ${s.buttonPaddingH||40}px;border-radius:${s.borderRadius||8}px;mso-hide:all;">${s.content||'Click Here'}</a><!--<![endif]--></td></tr>`;
+    if(s.type==='image') return `<tr><td align="center" style="padding:${s.padding||10}px;">${s.imageUrl?`<img src="${s.imageUrl}" width="${s.imageWidth||400}" alt="${s.altText||''}" style="display:block;max-width:100%;height:auto;border:0;${s.borderRadius?'border-radius:'+s.borderRadius+'px;':''}" />`:'<!-- Add image URL -->'}</td></tr>`;
+    if(s.type==='divider') return `<tr><td style="padding:${s.padding||10}px 20px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:${s.borderWidth||1}px ${s.borderStyle||'solid'} ${s.borderColor||'#e0e0e0'};"></td></tr></table></td></tr>`;
+    if(s.type==='spacer') return `<tr><td style="height:${s.height||20}px;font-size:0;line-height:0;">&nbsp;</td></tr>`;
+    if(s.type==='image-text'||s.type==='text-image'){
+      const imgW=s.imageWidth||200, gap=s.imageGap||20, vA=s.textVerticalAlign||'top', isL=s.type==='image-text';
+      const imgSrc=s.imageUrl||'';
+      const imgC=imgSrc?`<td valign="${vA}" width="${imgW}" style="padding:0;"><img src="${imgSrc}" width="${imgW}" alt="${s.altText||''}" style="display:block;max-width:100%;height:auto;border:0;" /></td>`:`<td valign="${vA}" width="${imgW}" style="padding:0;"><!-- Add image URL --></td>`;
+      const gC=`<td width="${gap}" style="font-size:0;line-height:0;">&nbsp;</td>`;
+      const tC=`<td valign="${vA}" style="font-family:${fontFamily};font-size:${s.fontSize||15}px;line-height:${s.lineHeight||1.5};color:${s.textColor||'#333'};">${s.content||''}</td>`;
+      const cells=isL?imgC+gC+tC:tC+gC+imgC;
+      return `<tr><td style="padding:${s.padding||20}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`;
+    }
+    if(s.type==='signature'){
+      const imgW=s.imageWidth||80, gap=s.imageGap||16, nSz=s.nameSize||14, dSz=s.detailSize||12;
+      const nClr=s.nameColor||'#1a1a2e', dClr=s.detailColor||'#666', lClr=s.linkColor||'#5b6abf', dvClr=s.dividerColor||'#e0e0e0';
+      const rounded=s.imageRounded?'border-radius:50%;':'';
+      const imgSrc=s.imageUrl||'';
+      const imgCell=imgSrc?`<td valign="middle" width="${imgW}" style="padding:0;"><img src="${imgSrc}" width="${imgW}" alt="${s.altText||''}" style="display:block;width:${imgW}px;height:auto;${rounded}border:0;" /></td><td width="${gap}" style="font-size:0;line-height:0;">&nbsp;</td>`:'';
+      let lines=`<span style="font-size:${nSz}px;font-weight:bold;color:${nClr};">${s.sigName||'Name'}</span><br/>`;
+      if(s.sigTitle) lines+=`<span style="font-size:${dSz}px;color:${dClr};">${s.sigTitle}</span><br/>`;
+      if(s.sigCompany) lines+=`<span style="font-size:${dSz}px;color:${dClr};font-weight:600;">${s.sigCompany}</span><br/>`;
+      if(s.sigEmail) lines+=`<a href="mailto:${s.sigEmail}" style="font-size:${dSz}px;color:${lClr};text-decoration:none;">${s.sigEmail}</a><br/>`;
+      if(s.sigPhone) lines+=`<span style="font-size:${dSz}px;color:${dClr};">${s.sigPhone}</span><br/>`;
+      if(s.sigWebsite) lines+=`<a href="${s.sigWebsite}" style="font-size:${dSz}px;color:${lClr};text-decoration:none;">${s.sigWebsite.replace(/^https?:\/\//,'')}</a>`;
+      const textCell=`<td valign="middle" style="font-family:${fontFamily};line-height:1.6;">${lines}</td>`;
+      return `<tr><td style="padding:${s.padding||20}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${dvClr};padding-top:${s.padding||20}px;"><tr>${imgCell}${textCell}</tr></table></td></tr>`;
+    }
+    if(s.type==='footer') return `<tr><td style="padding:${s.padding||20}px;font-family:${fontFamily};font-size:${s.fontSize||12}px;line-height:1.5;color:${s.textColor||'#999'};text-align:center;">${s.content||'\u00a9 2026 Company Name.'}${s.unsubscribeUrl?'<br/><a href="'+s.unsubscribeUrl+'" style="color:'+(s.linkColor||'#999')+';text-decoration:underline;">Unsubscribe</a>':''}</td></tr>`;
+    return '';
+  }).join('\n');
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Email</title>
+<!--[if gte mso 9]><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+<style type="text/css">
+body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}
+img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none;}
+body{height:100%!important;margin:0!important;padding:0!important;width:100%!important;}
+a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important;}
+@media only screen and (max-width:620px){
+.email-container{width:100%!important;max-width:100%!important;}
+.fluid{max-width:100%!important;height:auto!important;}
+.stack-column{display:block!important;width:100%!important;max-width:100%!important;}
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:${bgColor};">
+${preheaderText?`<div style="display:none;font-size:1px;color:${bgColor};line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${preheaderText}</div>`:''}
+<center>
+<!--[if mso]><table role="presentation" width="${emailWidth}" cellpadding="0" cellspacing="0" border="0" align="center" style="background-color:${contentBgColor};"><tr><td><![endif]-->
+<table role="presentation" class="email-container" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="max-width:${emailWidth}px;background-color:${contentBgColor};">
+${rows}
+</table>
+<!--[if mso]></td></tr></table><![endif]-->
+</center>
+</body>
+</html>`;
+}
+
+/* Canvas preview HTML (uses placeholders for empty images) */
+function canvasRowHTML(s) {
+  const ff = settings.fontFamily, ew = settings.emailWidth;
+  if(s.type==='header-image'){
+    const src=s.imageUrl||PH_WIDE;
+    return `<tr><td align="center" style="padding:${s.padding||0}px;"><img src="${src}" width="${s.imageWidth||ew}" alt="" style="display:block;max-width:100%;height:auto;border:0;" /></td></tr>`;
+  }
+  if(s.type==='image'){
+    const src=s.imageUrl||PH_IMG;
+    return `<tr><td align="center" style="padding:${s.padding||10}px;"><img src="${src}" width="${s.imageWidth||400}" alt="" style="display:block;max-width:100%;height:auto;border:0;${s.borderRadius?'border-radius:'+s.borderRadius+'px;':''}" /></td></tr>`;
+  }
+  if(s.type==='image-text'||s.type==='text-image'){
+    const imgW=s.imageWidth||200,gap=s.imageGap||20,vA=s.textVerticalAlign||'top',isL=s.type==='image-text';
+    const src=s.imageUrl||PH_SQ;
+    const imgC=`<td valign="${vA}" width="${imgW}" style="padding:0;"><img src="${src}" width="${imgW}" alt="" style="display:block;max-width:100%;height:auto;border:0;" /></td>`;
+    const gC=`<td width="${gap}" style="font-size:0;line-height:0;">&nbsp;</td>`;
+    const tC=`<td valign="${vA}" style="font-family:${ff};font-size:${s.fontSize||15}px;line-height:${s.lineHeight||1.5};color:${s.textColor||'#333'};">${s.content||''}</td>`;
+    const cells=isL?imgC+gC+tC:tC+gC+imgC;
+    return `<tr><td style="padding:${s.padding||20}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`;
+  }
+  if(s.type==='signature'){
+    const imgW=s.imageWidth||80, gap=s.imageGap||16, nSz=s.nameSize||14, dSz=s.detailSize||12;
+    const nClr=s.nameColor||'#1a1a2e', dClr=s.detailColor||'#666', lClr=s.linkColor||'#5b6abf', dvClr=s.dividerColor||'#e0e0e0';
+    const rounded=s.imageRounded?'border-radius:50%;':'';
+    const phAvatar = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${imgW}' height='${imgW}' viewBox='0 0 80 80'%3E%3Crect fill='%23e0e4ea' width='80' height='80' rx='${s.imageRounded?40:0}'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23a0aab4' font-family='sans-serif' font-size='28'%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E`;
+    const src=s.imageUrl||phAvatar;
+    const imgCell=`<td valign="middle" width="${imgW}" style="padding:0;"><img src="${src}" width="${imgW}" alt="" style="display:block;width:${imgW}px;height:auto;${rounded}border:0;" /></td><td width="${gap}" style="font-size:0;line-height:0;">&nbsp;</td>`;
+    let lines=`<span style="font-size:${nSz}px;font-weight:bold;color:${nClr};">${s.sigName||'Name'}</span><br/>`;
+    if(s.sigTitle) lines+=`<span style="font-size:${dSz}px;color:${dClr};">${s.sigTitle}</span><br/>`;
+    if(s.sigCompany) lines+=`<span style="font-size:${dSz}px;color:${dClr};font-weight:600;">${s.sigCompany}</span><br/>`;
+    if(s.sigEmail) lines+=`<span style="font-size:${dSz}px;color:${lClr};">${s.sigEmail}</span><br/>`;
+    if(s.sigPhone) lines+=`<span style="font-size:${dSz}px;color:${dClr};">${s.sigPhone}</span><br/>`;
+    if(s.sigWebsite) lines+=`<span style="font-size:${dSz}px;color:${lClr};">${s.sigWebsite.replace(/^https?:\/\//,'')}</span>`;
+    const textCell=`<td valign="middle" style="font-family:${ff};line-height:1.6;">${lines}</td>`;
+    return `<tr><td style="padding:${s.padding||20}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${dvClr};padding-top:${s.padding||20}px;"><tr>${imgCell}${textCell}</tr></table></td></tr>`;
+  }
+  // For other types use the real generator and extract
+  const full = genHTML([s], settings);
+  const m = full.match(/<table[^>]*class="email-container"[^>]*>([\s\S]*?)<\/table>\s*<!--/);
+  return m ? m[1] : '';
+}
+
+/* ===== RENDER ===== */
+function render() {
+  renderLayers();
+  renderCanvas();
+  renderEditor();
+  if(currentTab==='preview') renderPreview();
+  if(currentTab==='code') renderCode();
+  // Activate all Lucide icons in the DOM
+  if(window.lucide) lucide.createIcons();
+}
+
+function renderLayers() {
+  const el = document.getElementById('layerList');
+  if(!sections.length){ el.innerHTML='<div class="empty-msg">No sections yet.<br>Click a block above to start.</div>'; return; }
+  el.innerHTML = sections.map((s,i) => {
+    const m = getMeta(s);
+    const preview = s.type==='signature' ? (s.sigName ? ' — '+s.sigName.slice(0,18) : '') : (s.content && typeof s.content==='string' && s.type!=='button') ? ' — '+s.content.replace(/<[^>]*>/g,'').slice(0,18) : '';
+    return `<div class="layer-item${activeIdx===i?' active':''}" draggable="true" data-idx="${i}">
+      <span class="grip">${L('grip-vertical')}</span>
+      <span class="s-icon">${L(m.icon)}</span>
+      <span class="s-label">${m.label}${preview}</span>
+      <span class="s-actions">
+        <button class="s-action" data-act="up" data-idx="${i}">${L('chevron-up')}</button>
+        <button class="s-action" data-act="down" data-idx="${i}">${L('chevron-down')}</button>
+        <button class="s-action" data-act="dup" data-idx="${i}">${L('copy')}</button>
+        <button class="s-action danger" data-act="del" data-idx="${i}">${L('trash-2')}</button>
+      </span>
+    </div>`;
+  }).join('');
+
+  // DnD for layers
+  el.querySelectorAll('.layer-item').forEach(item => {
+    const idx = +item.dataset.idx;
+    item.addEventListener('click', e => {
+      if(e.target.closest('.s-action')) return;
+      activeIdx = idx; render();
+    });
+    item.addEventListener('dragstart', e => {
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain', idx);
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => { item.classList.remove('dragging'); document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over')); });
+    item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      const from = +e.dataTransfer.getData('text/plain');
+      reorder(from, idx);
+    });
+  });
+  // Action buttons
+  el.querySelectorAll('.s-action').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const i = +btn.dataset.idx, act = btn.dataset.act;
+      if(act==='up') moveSection(i,-1);
+      else if(act==='down') moveSection(i,1);
+      else if(act==='dup') dupSection(i);
+      else if(act==='del') delSection(i);
+    });
+  });
+}
+
+function renderCanvas() {
+  const canvas = document.getElementById('buildCanvas');
+  const empty = document.getElementById('emptyState');
+  if(!sections.length){ canvas.classList.add('hidden'); empty.classList.remove('hidden'); return; }
+  canvas.classList.remove('hidden'); empty.classList.add('hidden');
+  canvas.style.backgroundColor = settings.contentBgColor;
+
+  canvas.innerHTML = sections.map((s,i) => {
+    const m = getMeta(s);
+    const inner = canvasRowHTML(s);
+    return `<div class="canvas-block${activeIdx===i?' active-block':''}" data-idx="${i}">
+      <div class="canvas-grip" draggable="true" data-idx="${i}">${L('grip-vertical')}</div>
+      <div class="canvas-badge">${L(m.icon)} ${m.label}</div>
+      <div class="canvas-toolbar">
+        <button class="ct-btn" data-act="up" data-idx="${i}">${L('chevron-up')}</button>
+        <button class="ct-btn" data-act="down" data-idx="${i}">${L('chevron-down')}</button>
+        <button class="ct-btn" data-act="dup" data-idx="${i}">${L('copy')}</button>
+        <button class="ct-btn danger" data-act="del" data-idx="${i}">${L('trash-2')}</button>
+      </div>
+      <div class="canvas-content"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${inner}</table></div>
+    </div>`;
+  }).join('');
+
+  // Canvas block events
+  canvas.querySelectorAll('.canvas-block').forEach(block => {
+    const idx = +block.dataset.idx;
+    block.addEventListener('click', e => {
+      if(e.target.closest('.ct-btn')||e.target.closest('.canvas-grip')) return;
+      activeIdx = idx; render();
+    });
+    block.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; block.classList.add('canvas-drag-over'); });
+    block.addEventListener('dragleave', () => block.classList.remove('canvas-drag-over'));
+    block.addEventListener('drop', e => {
+      e.preventDefault();
+      const from = +e.dataTransfer.getData('text/plain');
+      reorder(from, idx);
+    });
+  });
+  // Canvas grips
+  canvas.querySelectorAll('.canvas-grip').forEach(grip => {
+    grip.addEventListener('dragstart', e => {
+      const idx = +grip.dataset.idx;
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain', idx);
+      grip.closest('.canvas-block').classList.add('canvas-dragging');
+    });
+    grip.addEventListener('dragend', () => {
+      document.querySelectorAll('.canvas-dragging,.canvas-drag-over').forEach(x => { x.classList.remove('canvas-dragging'); x.classList.remove('canvas-drag-over'); });
+    });
+  });
+  // Canvas toolbar buttons
+  canvas.querySelectorAll('.ct-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const i = +btn.dataset.idx, act = btn.dataset.act;
+      if(act==='up') moveSection(i,-1);
+      else if(act==='down') moveSection(i,1);
+      else if(act==='dup') dupSection(i);
+      else if(act==='del') delSection(i);
+    });
+  });
+}
+
+function renderEditor() {
+  const panel = document.getElementById('editorPanel');
+  if(activeIdx !== null && sections[activeIdx]) {
+    const s = sections[activeIdx], m = getMeta(s), t = s.type;
+    let fields = '';
+    const F = (key,label,type,opts={}) => fieldHTML(s,key,label,type,opts);
+
+    fields += F('padding','Padding (px)','number',{def:20,min:0,max:80});
+
+    if(t==='text'||t==='heading'||t==='footer'){
+      fields += F('content','Content (HTML ok)','textarea');
+      fields += F('fontSize','Font Size','number',{def:t==='heading'?28:t==='footer'?12:16,min:10,max:72});
+      if(t!=='heading') fields += F('lineHeight','Line Height','number',{def:1.6,min:1,max:3,step:0.1});
+      fields += F('textColor','Text Color','color',{def:t==='footer'?'#999999':'#333333'});
+      fields += F('textAlign','Align','select',{options:['left','center','right'],def:'left'});
+    }
+    if(t==='footer'){
+      fields += F('unsubscribeUrl','Unsubscribe URL','text');
+      fields += F('linkColor','Link Color','color',{def:'#999999'});
+    }
+    if(t==='header-image'||t==='image'){
+      fields += F('imageUrl','Image URL','text');
+      fields += F('altText','Alt Text','text');
+      fields += F('imageWidth','Image Width','number',{def:t==='header-image'?600:400,min:50,max:600});
+      if(t==='image') fields += F('borderRadius','Border Radius','number',{def:0,min:0,max:50});
+    }
+    if(t==='image-text'||t==='text-image'){
+      fields += F('imageUrl','Image URL','text');
+      fields += F('altText','Alt Text','text');
+      fields += F('imageWidth','Image Width','number',{def:200,min:50,max:400});
+      fields += F('imageGap','Gap Between (px)','number',{def:20,min:0,max:60});
+      fields += F('content','Text Content (HTML ok)','textarea');
+      fields += F('fontSize','Font Size','number',{def:15,min:10,max:48});
+      fields += F('lineHeight','Line Height','number',{def:1.5,min:1,max:3,step:0.1});
+      fields += F('textColor','Text Color','color',{def:'#333333'});
+      fields += F('textVerticalAlign','Vertical Align','select',{options:['top','middle','bottom'],def:'top'});
+    }
+    if(t==='button'){
+      fields += F('content','Button Text','text');
+      fields += F('buttonUrl','URL','text');
+      fields += F('bgColor','BG Color','color',{def:'#e94560'});
+      fields += F('textColor','Text Color','color',{def:'#ffffff'});
+      fields += F('fontSize','Font Size','number',{def:16});
+      fields += F('buttonPaddingV','V Padding','number',{def:14});
+      fields += F('buttonPaddingH','H Padding','number',{def:40});
+      fields += F('borderRadius','Border Radius','number',{def:8});
+      fields += F('buttonWidth','Width (MSO)','number',{def:220});
+      fields += F('textAlign','Align','select',{options:['left','center','right'],def:'center'});
+    }
+    if(t==='divider'){
+      fields += F('borderWidth','Border Width','number',{def:1});
+      fields += F('borderColor','Border Color','color',{def:'#e0e0e0'});
+      fields += F('borderStyle','Style','select',{options:['solid','dashed','dotted'],def:'solid'});
+    }
+    if(t==='signature'){
+      fields += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8890a0;margin-bottom:8px;margin-top:4px;">Person</div>';
+      fields += F('sigName','Full Name','text');
+      fields += F('sigTitle','Job Title','text');
+      fields += F('sigCompany','Company','text');
+      fields += F('sigEmail','Email','text');
+      fields += F('sigPhone','Phone','text');
+      fields += F('sigWebsite','Website URL','text');
+      fields += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8890a0;margin-bottom:8px;margin-top:12px;">Photo / Logo</div>';
+      fields += F('imageUrl','Image URL','text');
+      fields += F('altText','Alt Text','text');
+      fields += F('imageWidth','Image Size (px)','number',{def:80,min:30,max:200});
+      fields += F('imageRounded','Shape','select',{options:[{value:'true',label:'Circle'},{value:'false',label:'Square'}],def:'true'});
+      fields += F('imageGap','Gap (px)','number',{def:16,min:0,max:40});
+      fields += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8890a0;margin-bottom:8px;margin-top:12px;">Styling</div>';
+      fields += F('nameSize','Name Font Size','number',{def:14,min:10,max:24});
+      fields += F('nameColor','Name Color','color',{def:'#1a1a2e'});
+      fields += F('detailSize','Detail Font Size','number',{def:12,min:9,max:18});
+      fields += F('detailColor','Detail Color','color',{def:'#666666'});
+      fields += F('linkColor','Link Color','color',{def:'#5b6abf'});
+      fields += F('dividerColor','Divider Line Color','color',{def:'#e0e0e0'});
+    }
+    if(t==='spacer') fields += F('height','Height','number',{def:20,min:4,max:120});
+
+    panel.innerHTML = `
+      <div class="editor-panel-header">
+        <span>${L(m.icon)} ${m.label}</span>
+        <button class="s-action" id="closeEditor">${L('x')}</button>
+      </div>
+      <div class="editor-body">${fields}</div>`;
+
+    document.getElementById('closeEditor').addEventListener('click', () => { activeIdx=null; render(); });
+
+    // Bind field inputs
+    panel.querySelectorAll('[data-field]').forEach(input => {
+      const handler = () => {
+        const key = input.dataset.field;
+        let val = input.value;
+        if(input.type==='number') val = Number(val);
+        // Handle boolean selects (imageRounded)
+        if(key==='imageRounded') val = (val==='true');
+        sections[activeIdx][key] = val;
+        // Sync paired color text/picker
+        if(input.type==='color'){
+          const pair = input.parentElement.querySelector('input[type=text]');
+          if(pair) pair.value = val;
+        } else if(input.type==='text' && input.parentElement.classList.contains('color-row')){
+          const pair = input.parentElement.querySelector('input[type=color]');
+          if(pair && /^#[0-9a-f]{6}$/i.test(val)) pair.value = val;
+        }
+        renderCanvas();
+        renderLayers();
+        if(currentTab==='preview') renderPreview();
+        if(currentTab==='code') renderCode();
+      };
+      input.addEventListener('input', handler);
+      if(input.tagName==='SELECT') input.addEventListener('change', handler);
+    });
+  } else {
+    // Settings view
+    panel.innerHTML = `
+      <div class="editor-panel-header">Email Settings</div>
+      <div class="settings-section">
+        <div class="settings-title">General</div>
+        <label class="field"><span>Email Width</span><input type="number" data-setting="emailWidth" value="${settings.emailWidth}" min="400" max="800" /></label>
+        <label class="field"><span>Font Family</span><select data-setting="fontFamily">${FONTS.map(f=>`<option value="${f}"${settings.fontFamily===f?' selected':''}>${f.split(',')[0]}</option>`).join('')}</select></label>
+        <label class="field"><span>Preheader Text</span><input type="text" data-setting="preheaderText" value="${settings.preheaderText}" placeholder="Hidden preview text…" /></label>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">Colors</div>
+        <label class="field"><span>Body Background</span><div class="color-row"><input type="color" data-setting="bgColor" value="${settings.bgColor}" /><input type="text" data-setting="bgColor" value="${settings.bgColor}" /></div></label>
+        <label class="field"><span>Content Background</span><div class="color-row"><input type="color" data-setting="contentBgColor" value="${settings.contentBgColor}" /><input type="text" data-setting="contentBgColor" value="${settings.contentBgColor}" /></div></label>
+      </div>
+      <div class="settings-section how-to">
+        <div class="settings-title">How to use</div>
+        <p>➊ Add blocks from the left panel</p>
+        <p>➋ Click any block to edit in this panel</p>
+        <p>➌ Drag grip handles to reorder</p>
+        <p>➍ Use arrows to move, copy to duplicate, trash to delete</p>
+        <p>➎ Hit "Copy for Outlook / Gmail" and paste directly into a new email</p>
+      </div>`;
+
+    panel.querySelectorAll('[data-setting]').forEach(input => {
+      input.addEventListener('input', e => {
+        const key = input.dataset.setting;
+        let val = input.value;
+        if(input.type==='number') val = Number(val);
+        settings[key] = val;
+        // Sync paired color
+        if(input.type==='color'){
+          const pair = input.parentElement.querySelector('input[type=text]');
+          if(pair) pair.value = val;
+        } else if(input.type==='text' && input.parentElement.classList.contains('color-row')){
+          const pair = input.parentElement.querySelector('input[type=color]');
+          if(pair && /^#[0-9a-f]{6}$/i.test(val)) pair.value = val;
+        }
+        renderCanvas();
+        if(currentTab==='preview') renderPreview();
+        if(currentTab==='code') renderCode();
+      });
+    });
+  }
+}
+
+function fieldHTML(s, key, label, type, opts={}) {
+  const val = s[key] != null ? s[key] : (opts.def != null ? opts.def : '');
+  if(type==='textarea') return `<label class="field"><span>${label}</span><textarea data-field="${key}" rows="4">${val}</textarea></label>`;
+  if(type==='select'){
+    const options = (opts.options||[]).map(o => {
+      const ov = typeof o==='object'?o.value:o, ol = typeof o==='object'?o.label:o;
+      return `<option value="${ov}"${String(val)===String(ov)?' selected':''}>${ol}</option>`;
+    }).join('');
+    return `<label class="field"><span>${label}</span><select data-field="${key}">${options}</select></label>`;
+  }
+  if(type==='color'){
+    const cv = val || opts.def || '#333333';
+    return `<label class="field"><span>${label}</span><div class="color-row"><input type="color" data-field="${key}" value="${cv}" /><input type="text" data-field="${key}" value="${cv}" /></div></label>`;
+  }
+  const step = opts.step || (key==='lineHeight'?0.1:1);
+  const extra = type==='number' ? ` min="${opts.min||''}" max="${opts.max||''}" step="${step}"` : '';
+  return `<label class="field"><span>${label}</span><input type="${type||'text'}" data-field="${key}" value="${val}"${extra} /></label>`;
+}
+
+function renderPreview() {
+  const frame = document.getElementById('viewPreview');
+  const doc = frame.contentDocument;
+  doc.open(); doc.write(genHTML(sections, settings)); doc.close();
+}
+
+function renderCode() {
+  document.getElementById('codeBlock').textContent = genHTML(sections, settings);
+}
+
+/* ===== ACTIONS ===== */
+function addSection(type) {
+  sections.push({ id:uid(), type, ...JSON.parse(JSON.stringify(DEFAULTS[type])) });
+  activeIdx = sections.length - 1;
+  render();
+}
+function moveSection(i, dir) {
+  const j = i + dir;
+  if(j<0||j>=sections.length) return;
+  [sections[i],sections[j]] = [sections[j],sections[i]];
+  activeIdx = j;
+  render();
+}
+function dupSection(i) {
+  sections.splice(i+1, 0, { ...JSON.parse(JSON.stringify(sections[i])), id:uid() });
+  activeIdx = i+1;
+  render();
+}
+function delSection(i) {
+  sections.splice(i, 1);
+  activeIdx = null;
+  render();
+}
+function reorder(from, to) {
+  if(from===to) return;
+  const [moved] = sections.splice(from, 1);
+  sections.splice(to, 0, moved);
+  activeIdx = to;
+  render();
+}
+
+/* ===== TABS ===== */
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.topbar-tab').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  document.getElementById('viewBuild').classList.toggle('hidden', tab!=='build');
+  document.getElementById('viewPreview').classList.toggle('hidden', tab!=='preview');
+  document.getElementById('viewCode').classList.toggle('hidden', tab!=='code');
+  if(tab==='preview') renderPreview();
+  if(tab==='code') renderCode();
+}
+
+/* ===== INIT ===== */
+(function init() {
+  // Add block buttons
+  const grid = document.getElementById('addGrid');
+  grid.innerHTML = TYPES.map(t => `<button class="add-btn" data-type="${t.type}"><span class="add-icon">${L(t.icon)}</span>${t.label}</button>`).join('');
+  grid.querySelectorAll('.add-btn').forEach(btn => btn.addEventListener('click', () => addSection(btn.dataset.type)));
+
+  // Tab buttons
+  document.querySelectorAll('.topbar-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+  // Copy raw HTML code
+  document.getElementById('btnCopyCode').addEventListener('click', () => {
+    navigator.clipboard.writeText(genHTML(sections, settings)).then(() => {
+      const btn = document.getElementById('btnCopyCode');
+      const orig = btn.innerHTML;
+      btn.innerHTML = `${L('check')} Copied!`;
+      if(window.lucide) lucide.createIcons();
+      setTimeout(() => { btn.innerHTML = orig; if(window.lucide) lucide.createIcons(); }, 2000);
+    });
+  });
+
+  // Copy as rich HTML for Outlook/Gmail paste
+  document.getElementById('btnCopyOutlook').addEventListener('click', () => {
+    const html = genHTML(sections, settings);
+    const blob = new Blob([html], {type: 'text/html'});
+    const plainBlob = new Blob([html], {type: 'text/plain'});
+    const showSuccess = () => {
+      const btn = document.getElementById('btnCopyOutlook');
+      const orig = btn.innerHTML;
+      btn.innerHTML = `${L('check')} Copied! Paste in Outlook / Gmail`;
+      if(window.lucide) lucide.createIcons();
+      setTimeout(() => { btn.innerHTML = orig; if(window.lucide) lucide.createIcons(); }, 2500);
+    };
+    navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': blob,
+        'text/plain': plainBlob
+      })
+    ]).then(showSuccess).catch(() => {
+      // Fallback: render in hidden iframe, select and execCommand
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentDocument;
+      doc.open(); doc.write(html); doc.close();
+      const range = doc.createRange();
+      range.selectNodeContents(doc.body);
+      const sel = iframe.contentWindow.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      doc.execCommand('copy');
+      document.body.removeChild(iframe);
+      showSuccess();
+    });
+  });
+
+  render();
+  // Initialize Lucide icons for static elements (topbar, buttons)
+  if(window.lucide) lucide.createIcons();
+})();
+</script>
+</body>
+</html>

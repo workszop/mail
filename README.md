@@ -1,2 +1,2 @@
 # mail
-create html formatted emails
+create html formatted emails for outlook/gmail
